@@ -580,12 +580,6 @@ export default function App() {
       return;
     }
     
-    // If live session is active, send text through it
-    if (isSessionActive && liveSessionRef.current) {
-      liveSessionRef.current.sendText(finalTranscript);
-      return;
-    }
-
     setAppState("processing");
 
     // 1. Check for browser commands
@@ -618,7 +612,7 @@ export default function App() {
       await speakJennieResponse(responseText);
       setAppState("idle");
     }
-  }, [handleLocalAssistantFeature, isSessionActive, speakJennieResponse]);
+  }, [handleLocalAssistantFeature, speakJennieResponse]);
 
   useEffect(() => {
     return () => {
