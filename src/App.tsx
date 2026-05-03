@@ -7,7 +7,7 @@ import { formatJennieTimeReply, getJennieCurrentHour, isTimeQuestion } from "./s
 import Visualizer from "./components/Visualizer";
 import PermissionModal, { PermissionIssue } from "./components/PermissionModal";
 import MusicPlayer from "./components/MusicPlayer";
-import { playPCM, speakText, unlockAudio, unlockSpeech } from "./utils/audioUtils";
+import { playPCM, unlockAudio } from "./utils/audioUtils";
 import { motion, AnimatePresence } from "motion/react";
 import confetti from "canvas-confetti";
 
@@ -193,14 +193,10 @@ export default function App() {
         return;
       }
     } catch (error) {
-      console.warn("Gemini voice unavailable, using browser speech fallback:", error);
+      console.warn("Jennie's Gemini voice unavailable:", error);
     }
 
-    try {
-      await speakText(text);
-    } catch (error) {
-      console.error("Browser speech fallback failed:", error);
-    }
+    console.warn("Skipping browser speech fallback so Jennie's voice does not change.");
   }, [isMuted]);
 
   const addJennieMessage = useCallback((text: string) => {
@@ -922,7 +918,6 @@ export default function App() {
 
   const unlockVoicePlayback = () => {
     unlockAudio();
-    unlockSpeech();
   };
 
   const getSessionStartupIssue = (error: unknown): PermissionIssue => {
