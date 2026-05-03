@@ -1,7 +1,8 @@
 function pickFemaleVoice(): SpeechSynthesisVoice | null {
   const voices = window.speechSynthesis?.getVoices?.() || [];
   return (
-    voices.find((voice) => /female|zira|susan|samantha|karen|veena|google uk english female/i.test(voice.name)) ||
+    voices.find((voice) => /neerja|heera|veena|zira|samantha|karen|susan|female|google uk english female/i.test(voice.name)) ||
+    voices.find((voice) => /^(en-IN|hi-IN)/i.test(voice.lang)) ||
     voices.find((voice) => /^en(-|_)/i.test(voice.lang)) ||
     voices[0] ||
     null
@@ -104,8 +105,8 @@ export async function speakText(text: string): Promise<void> {
 
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = "en-IN";
-      utterance.rate = 1;
-      utterance.pitch = 1.08;
+      utterance.rate = 1.04;
+      utterance.pitch = 1.12;
       utterance.voice = pickFemaleVoice();
       utterance.onend = () => resolve();
       utterance.onerror = (event) => {

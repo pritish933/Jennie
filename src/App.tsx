@@ -90,12 +90,6 @@ export default function App() {
 
   const [isMuted, setIsMuted] = useState(false);
 
-  useEffect(() => {
-    if (liveSessionRef.current) {
-      liveSessionRef.current.isMuted = isMuted;
-    }
-  }, [isMuted]);
-
   const [showTextInput, setShowTextInput] = useState(false);
   const [textInput, setTextInput] = useState("");
   const [showPermissionModal, setShowPermissionModal] = useState(false);
@@ -166,6 +160,7 @@ export default function App() {
   }, [activeStoryId]);
 
   const liveSessionRef = useRef<LiveSessionManager | null>(null);
+  const speechRecognitionRef = useRef<any | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const reminderTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
@@ -318,11 +313,7 @@ export default function App() {
       const delay = Math.max(0, reminder.dueAt - Date.now());
       reminderTimersRef.current[reminder.id] = setTimeout(() => {
         setReminders((prev) => prev.map((item) => item.id === reminder.id ? { ...item, done: true } : item));
-        if (liveSessionRef.current) {
-          liveSessionRef.current.sendText(`[SYSTEM_EVENT: REMINDER: ${reminder.message}]`);
-        } else {
-          replyAsJennie(`Reminder: ${reminder.message}. Haan haan, ab ignore mat karna.`);
-        }
+        replyAsJennie(`Reminder: ${reminder.message}. Haan haan, ab ignore mat karna.`);
       }, delay);
     });
 
@@ -616,9 +607,8 @@ export default function App() {
 
   useEffect(() => {
     return () => {
-      if (liveSessionRef.current) {
-        liveSessionRef.current.stop();
-      }
+      speechRecognitionRef.current?.stop?.();
+      speechRecognitionRef.current = null;
     };
   }, []);
 
@@ -844,6 +834,83 @@ export default function App() {
     }
   };
 
+  const toggleSpeechRecognition = async () => {
+    if (isSessionActive) {
+      speechRecognitionRef.current?.stop?.();
+      speechRecognitionRef.current = null;
+      setIsSessionActive(false);
+      setAppState("idle");
+      return;
+    }
+
+    try {
+      const SpeechRecognitionClass = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognitionClass) {
+        throw new Error("SpeechRecognition is not supported in this browser. Try Chrome or Edge.");
+      }
+
+      resetJennieSession();
+      unlockVoicePlayback();
+
+      const recognition = new SpeechRecognitionClass();
+      let handledResult = false;
+
+      recognition.lang = "en-IN";
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+
+      recognition.onstart = () => {
+        setIsSessionActive(true);
+        setAppState("listening");
+      };
+
+      recognition.onresult = (event: any) => {
+        let transcript = "";
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          transcript += event.results[i]?.[0]?.transcript || "";
+        }
+
+        const finalTranscript = transcript.trim();
+        if (!finalTranscript) return;
+
+        handledResult = true;
+        speechRecognitionRef.current = null;
+        setIsSessionActive(false);
+        setAppState("processing");
+        void handleTextCommand(finalTranscript);
+      };
+
+      recognition.onerror = (event: any) => {
+        const errorName = event?.error || "speech-recognition-error";
+        speechRecognitionRef.current = null;
+        setIsSessionActive(false);
+        setAppState("idle");
+
+        if (errorName === "no-speech") return;
+        showSessionStartupIssue(new Error(errorName));
+      };
+
+      recognition.onend = () => {
+        if (speechRecognitionRef.current === recognition) {
+          speechRecognitionRef.current = null;
+        }
+        if (!handledResult) {
+          setIsSessionActive(false);
+          setAppState("idle");
+        }
+      };
+
+      speechRecognitionRef.current = recognition;
+      recognition.start();
+    } catch (e) {
+      console.error("Failed to start microphone recognition", e);
+      showSessionStartupIssue(e);
+      setIsSessionActive(false);
+      setAppState("idle");
+    }
+  };
+
   const handleTextSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!textInput.trim()) return;
@@ -864,7 +931,7 @@ export default function App() {
     if (!window.isSecureContext) return "secure-context";
     if (!navigator.mediaDevices?.getUserMedia) return "browser";
     if (/GEMINI_API_KEY|live token|api key|token request|server/i.test(message)) return "api-key";
-    if (/NotAllowedError|Permission denied|permission|denied/i.test(message)) return "microphone";
+    if (/NotAllowedError|not-allowed|audio-capture|Permission denied|permission|denied/i.test(message)) return "microphone";
     if (/NotFoundError|DevicesNotFoundError|device not found|requested device not found/i.test(message)) return "browser";
     return "live-api";
   };
@@ -1252,7 +1319,7 @@ export default function App() {
           {!showTextInput && (
             <>
               <button
-                onClick={toggleListening}
+                onClick={toggleSpeechRecognition}
                 className={`
                   relative flex items-center justify-center w-14 h-14 rounded-full transition-all duration-500 shadow-xl overflow-hidden group
                   ${isSessionActive 

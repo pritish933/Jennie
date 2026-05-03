@@ -16,7 +16,11 @@ export const handler = async (event) => {
     const ai = new GoogleGenAI({ apiKey: getGeminiApiKey() });
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash-preview-tts",
-      contents: [{ parts: [{ text: `Say warmly in a friendly Hinglish female voice: ${text}` }] }],
+      contents: [{
+        parts: [{
+          text: `Read aloud exactly this transcript in Jennie's playful, witty, caring Hinglish voice. Do not add, remove, translate, or rewrite any words:\n${text}`,
+        }],
+      }],
       config: {
         responseModalities: ["AUDIO"],
         speechConfig: {

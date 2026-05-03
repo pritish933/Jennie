@@ -25,9 +25,26 @@ async function postJson<T>(url: string, body: unknown): Promise<T> {
   return payload as T;
 }
 
+function getJennieClientContext() {
+  if (typeof localStorage === "undefined") return {};
+
+  return {
+    memory: localStorage.getItem("jennie_memory") || "",
+    playlists: localStorage.getItem("jennie_playlists") || "{}",
+    tasks: localStorage.getItem("jennie_tasks") || "[]",
+    reminders: localStorage.getItem("jennie_reminders") || "[]",
+    storySessions: localStorage.getItem("jennie_story_sessions") || "[]",
+    storyMode: localStorage.getItem("jennie_story_mode") || "horror",
+  };
+}
+
 export async function getJennieResponse(prompt: string, history: { sender: "user" | "jennie", text: string }[] = []): Promise<string> {
   try {
-    const response = await postJson<{ text?: string }>("/api/chat", { prompt, history });
+    const response = await postJson<{ text?: string }>("/api/chat", {
+      prompt,
+      history,
+      context: getJennieClientContext(),
+    });
     return response.text || "Ugh, fine. I have nothing to say.";
   } catch (error) {
     console.error("Gemini Error:", error);

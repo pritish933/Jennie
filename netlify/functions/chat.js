@@ -21,7 +21,7 @@ export const handler = async (event) => {
   }
 
   try {
-    const { prompt, history } = readJsonBody(event);
+    const { prompt, history, context } = readJsonBody(event);
     if (typeof prompt !== "string" || !prompt.trim()) {
       return json(400, { error: "Prompt is required." });
     }
@@ -36,7 +36,7 @@ export const handler = async (event) => {
         const chat = ai.chats.create({
           model,
           config: {
-            systemInstruction: getSystemInstruction(),
+            systemInstruction: getSystemInstruction(context),
           },
           history: formattedHistory,
         });
