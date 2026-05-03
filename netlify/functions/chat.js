@@ -11,8 +11,8 @@ import {
   withJennieTimeContext,
 } from "./_jennie.js";
 
-const PRIMARY_TEXT_MODEL = "gemini-3.1-flash-lite-preview";
-const FALLBACK_TEXT_MODEL = "gemini-2.5-flash";
+const PRIMARY_TEXT_MODEL = "gemini-2.5-flash";
+const FALLBACK_TEXT_MODEL = "gemini-2.5-flash-lite";
 
 export const handler = async (event) => {
   if (event.httpMethod === "OPTIONS") return options();
