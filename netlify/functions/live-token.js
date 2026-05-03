@@ -1,6 +1,8 @@
 import { GoogleGenAI } from "@google/genai";
 import { getGeminiApiKey, json, options, toErrorResponse } from "./_jennie.js";
 
+const LIVE_MODEL = "gemini-3.1-flash-live-preview";
+
 export const handler = async (event) => {
   if (event.httpMethod === "OPTIONS") return options();
   if (event.httpMethod !== "POST") {
@@ -14,6 +16,10 @@ export const handler = async (event) => {
         uses: 1,
         newSessionExpireTime: new Date(Date.now() + 2 * 60 * 1000).toISOString(),
         expireTime: new Date(Date.now() + 35 * 60 * 1000).toISOString(),
+        httpOptions: { apiVersion: "v1alpha" },
+        liveConnectConstraints: {
+          model: LIVE_MODEL,
+        },
       },
     });
 
