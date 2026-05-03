@@ -1,6 +1,42 @@
 import { GoogleGenAI } from "@google/genai";
 import { getGeminiApiKey, json, options, readJsonBody, toErrorResponse } from "./_jennie.js";
 
+async function synthesizeJennieAudio(ai, text) {
+  const attempts = [
+    text,
+    `Say this in Jennie's witty, sassy, dramatic Hinglish female voice. Keep the exact words and do not add anything:\n${text}`,
+  ];
+
+  let lastError;
+  for (const prompt of attempts) {
+    try {
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash-preview-tts",
+        contents: [{ parts: [{ text: prompt }] }],
+        config: {
+          responseModalities: ["AUDIO"],
+          speechConfig: {
+            voiceConfig: {
+              prebuiltVoiceConfig: { voiceName: "Kore" },
+            },
+          },
+        },
+      });
+
+      const audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data || null;
+      if (audio) return audio;
+    } catch (error) {
+      lastError = error;
+      if (!/only be used for TTS|generate text|INVALID_ARGUMENT/i.test(String(error?.message || error))) {
+        throw error;
+      }
+    }
+  }
+
+  if (lastError) throw lastError;
+  return null;
+}
+
 export const handler = async (event) => {
   if (event.httpMethod === "OPTIONS") return options();
   if (event.httpMethod !== "POST") {
@@ -14,25 +50,8 @@ export const handler = async (event) => {
     }
 
     const ai = new GoogleGenAI({ apiKey: getGeminiApiKey() });
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash-preview-tts",
-      contents: [{
-        parts: [{
-          text: `Say this in Jennie's playful, witty, slightly possessive, deeply caring Hinglish female voice. Keep the exact words and do not add anything:\n${text}`,
-        }],
-      }],
-      config: {
-        responseModalities: ["AUDIO"],
-        speechConfig: {
-          voiceConfig: {
-            prebuiltVoiceConfig: { voiceName: "Kore" },
-          },
-        },
-      },
-    });
-
     return json(200, {
-      audio: response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data || null,
+      audio: await synthesizeJennieAudio(ai, text),
     });
   } catch (error) {
     return toErrorResponse(error);

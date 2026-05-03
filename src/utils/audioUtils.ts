@@ -1,14 +1,3 @@
-function pickFemaleVoice(): SpeechSynthesisVoice | null {
-  const voices = window.speechSynthesis?.getVoices?.() || [];
-  return (
-    voices.find((voice) => /female|zira|susan|samantha|karen|veena|google uk english female/i.test(voice.name)) ||
-    voices.find((voice) => /^en(-|_)/i.test(voice.lang)) ||
-    voices[0] ||
-    null
-  );
-}
-
-let speechUnlocked = false;
 let sharedAudioContext: AudioContext | null = null;
 
 function getAudioContext(): AudioContext | null {
@@ -73,57 +62,6 @@ export function unlockAudio(): void {
   source.buffer = buffer;
   source.connect(audioCtx.destination);
   source.start();
-}
-
-export function unlockSpeech(): void {
-  if (speechUnlocked || !("speechSynthesis" in window)) return;
-
-  speechUnlocked = true;
-  const utterance = new SpeechSynthesisUtterance(" ");
-  utterance.volume = 0;
-  utterance.rate = 1;
-  utterance.pitch = 1;
-  utterance.voice = pickFemaleVoice();
-  window.speechSynthesis.speak(utterance);
-}
-
-export async function speakText(text: string): Promise<void> {
-  return new Promise((resolve) => {
-    if (!("speechSynthesis" in window) || !text.trim()) {
-      resolve();
-      return;
-    }
-
-    window.speechSynthesis.cancel();
-    let didStart = false;
-
-    const speak = () => {
-      if (didStart) return;
-      didStart = true;
-      window.speechSynthesis.onvoiceschanged = null;
-
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = "en-IN";
-      utterance.rate = 1;
-      utterance.pitch = 1.08;
-      utterance.voice = pickFemaleVoice();
-      utterance.onend = () => resolve();
-      utterance.onerror = (event) => {
-        console.error("Browser speech error:", event.error);
-        resolve();
-      };
-      console.log("Speaking with browser speech fallback");
-      window.speechSynthesis.speak(utterance);
-      window.speechSynthesis.resume();
-    };
-
-    if (window.speechSynthesis.getVoices().length === 0) {
-      window.speechSynthesis.onvoiceschanged = speak;
-      setTimeout(speak, 250);
-    } else {
-      speak();
-    }
-  });
 }
 
 export async function playPCM(base64Data: string): Promise<void> {
