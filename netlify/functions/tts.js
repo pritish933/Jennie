@@ -18,7 +18,7 @@ export const handler = async (event) => {
       model: "gemini-2.5-flash-preview-tts",
       contents: [{
         parts: [{
-          text: `Read aloud exactly this transcript in Jennie's playful, witty, caring Hinglish voice. Do not add, remove, translate, or rewrite any words:\n${text}`,
+          text: `Say this in Jennie's playful, witty, slightly possessive, deeply caring Hinglish female voice. Keep the exact words and do not add anything:\n${text}`,
         }],
       }],
       config: {
